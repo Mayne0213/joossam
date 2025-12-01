@@ -1,0 +1,23 @@
+services:
+  # Production Joossam FastAPI Application
+  app:
+    image: joossam-app
+    build:
+      context: ../../services/fastapi
+      dockerfile: ../../deploy/docker/Dockerfile.prod
+    container_name: joossam-app-prod
+    restart: unless-stopped
+    labels:
+      kompose.namespace: joossam
+    ports:
+      - 8001:8000
+    environment:
+      - ENV=production
+    networks:
+      - joossam-network
+
+networks:
+  joossam-network:
+    driver: bridge
+    name: joossam-network-prod
+
