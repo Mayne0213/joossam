@@ -14,7 +14,7 @@ commonLabels:
 # 이미지 태그 설정 (dev 브랜치 사용 시)
 images:
   - name: ghcr.io/mayne0213/joossam
-    newTag: main-sha-69b3fc9deb45c82ac19120458829d940f1f7a498
+    newTag: main-sha-227fdc85f227ae0af1a6a7ed53e45bdda50a8517
 
 patchesStrategicMerge:
   - deployment-patch.yaml
