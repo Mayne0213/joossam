@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: joossam-dev-quota
+  namespace: joossam-dev
+spec:
+  hard:
+    requests.memory: "1075Mi"
+    requests.cpu: "630m"
+    limits.memory: "1613Mi"
+    limits.cpu: "1470m"
+    pods: "6"
