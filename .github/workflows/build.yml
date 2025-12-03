@@ -2,7 +2,7 @@ name: Build Docker Image
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     tags:
       - 'v*'
   workflow_dispatch:
@@ -58,7 +58,7 @@ jobs:
         id: build
         uses: docker/build-push-action@v5
         with:
-          context: ./services/fastapi
+          context: ./services/nextjs
           file: ./deploy/docker/Dockerfile.prod
           push: true
           platforms: linux/amd64,linux/arm64
@@ -75,33 +75,37 @@ jobs:
           echo "All tags:"
           echo "$TAGS"
           echo "---"
-          
+
           # Get commit SHA (full 40 characters)
           COMMIT_SHA="${{ github.sha }}"
-          
+
+          # Get current branch name
+          BRANCH_NAME="${{ github.ref_name }}"
+          echo "Branch: $BRANCH_NAME"
+
           # Method 1: Extract the full SHA tag from docker/metadata-action output
-          # docker/metadata-action creates: main-sha-<full-40-char-sha>
-          SHA_TAG=$(echo "$TAGS" | grep -oE 'main-sha-[a-f0-9]{40}' | head -n 1)
-          
-          # Method 2: If not found, try to extract any main-sha- tag (fallback)
+          # docker/metadata-action creates: <branch>-sha-<full-40-char-sha>
+          SHA_TAG=$(echo "$TAGS" | grep -oE "${BRANCH_NAME}-sha-[a-f0-9]{40}" | head -n 1)
+
+          # Method 2: If not found, try to extract any branch-sha- tag (fallback)
           if [ -z "$SHA_TAG" ]; then
-            SHA_TAG=$(echo "$TAGS" | grep -oE 'main-sha-[a-f0-9]+' | head -n 1)
+            SHA_TAG=$(echo "$TAGS" | grep -oE "${BRANCH_NAME}-sha-[a-f0-9]+" | head -n 1)
             if [ -n "$SHA_TAG" ]; then
               echo "⚠️  Found SHA tag (may not be full 40 chars): $SHA_TAG"
             fi
           fi
-          
+
           # Method 3: Fallback to commit SHA directly (construct the tag)
           if [ -z "$SHA_TAG" ]; then
-            SHA_TAG="main-sha-$COMMIT_SHA"
+            SHA_TAG="${BRANCH_NAME}-sha-$COMMIT_SHA"
             echo "⚠️  Could not extract from tags, using commit SHA: $SHA_TAG"
           fi
-          
+
           if [ -z "$SHA_TAG" ]; then
             echo "❌ ERROR: Failed to extract SHA tag"
             exit 1
           fi
-          
+
           echo "sha-tag=$SHA_TAG" >> $GITHUB_OUTPUT
           echo "✅ Extracted SHA tag: $SHA_TAG"
 
@@ -118,31 +122,50 @@ jobs:
             echo "❌ ERROR: SHA_TAG is empty, cannot update kustomization"
             exit 1
           fi
-          
-          echo "📝 Updating kustomization.yaml with tag: $SHA_TAG"
-          
-          # Update kustomization.yaml with new image tag
-          # Handle both cases: newTag: (with value) and newTag: (empty)
-          sed -i.bak "s|newTag:.*|newTag: $SHA_TAG|" deploy/k8s/overlays/prod/kustomization.yaml
-          
-          # Verify the update was successful
-          if grep -q "newTag: $SHA_TAG" deploy/k8s/overlays/prod/kustomization.yaml; then
-            echo "✅ Successfully updated kustomization.yaml"
-            rm -f deploy/k8s/overlays/prod/kustomization.yaml.bak
+
+          # Determine overlay based on branch
+          BRANCH_NAME="${{ github.ref_name }}"
+          if [ "$BRANCH_NAME" = "main" ]; then
+            OVERLAY="prod"
+          elif [ "$BRANCH_NAME" = "develop" ]; then
+            OVERLAY="dev"
           else
-            echo "❌ ERROR: Failed to update kustomization.yaml"
-            cat deploy/k8s/overlays/prod/kustomization.yaml
-            exit 1
+            echo "⚠️  Unknown branch: $BRANCH_NAME, skipping kustomization update"
+            exit 0
           fi
 
-          # Commit and push if there are changes
-          if git diff --quiet; then
-            echo "No changes to commit"
+          KUSTOMIZATION_FILE="deploy/k8s/overlays/$OVERLAY/kustomization.yaml"
+
+          # Check if kustomization file has images section
+          if grep -q "images:" "$KUSTOMIZATION_FILE"; then
+            echo "📝 Updating $KUSTOMIZATION_FILE with tag: $SHA_TAG"
+
+            # Update kustomization.yaml with new image tag
+            # Handle both cases: newTag: (with value) and newTag: (empty)
+            sed -i.bak "s|newTag:.*|newTag: $SHA_TAG|" "$KUSTOMIZATION_FILE"
+
+            # Verify the update was successful
+            if grep -q "newTag: $SHA_TAG" "$KUSTOMIZATION_FILE"; then
+              echo "✅ Successfully updated kustomization.yaml"
+              rm -f "$KUSTOMIZATION_FILE.bak"
+            else
+              echo "❌ ERROR: Failed to update kustomization.yaml"
+              cat "$KUSTOMIZATION_FILE"
+              exit 1
+            fi
+
+            # Commit and push if there are changes
+            if git diff --quiet; then
+              echo "No changes to commit"
+            else
+              git add "$KUSTOMIZATION_FILE"
+              git commit -m "Update $OVERLAY image to $SHA_TAG"
+              git push
+              echo "✅ Kustomization updated with new image tag: $SHA_TAG"
+            fi
           else
-            git add deploy/k8s/overlays/prod/kustomization.yaml
-            git commit -m "Update image to $SHA_TAG"
-            git push
-            echo "✅ Kustomization updated with new image tag: $SHA_TAG"
+            echo "ℹ️  $OVERLAY overlay uses base image (latest tag), skipping kustomization update"
+            echo "   Image built with tag: $SHA_TAG"
           fi
 
       - name: Display image information
@@ -156,4 +179,3 @@ jobs:
           echo "🚀 Kustomization updated with new image tag"
           echo "   ArgoCD will automatically detect and deploy this new image"
           echo "   Monitor deployment at your ArgoCD dashboard"
-
