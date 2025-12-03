@@ -11,5 +11,10 @@ resources:
 commonLabels:
   environment: development
 
+# 이미지 태그 설정
+images:
+  - name: ghcr.io/mayne0213/joossam
+    newTag: develop-sha-latest
+
 patchesStrategicMerge:
   - deployment-patch.yaml
