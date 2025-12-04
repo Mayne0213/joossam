@@ -1,11 +1,8 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, List, Optional
+from typing import Dict
 import json
-import tempfile
-import os
-import sys
 
 import cv2
 import numpy as np
