@@ -12,8 +12,8 @@ spec:
         - name: joossam-app
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "100m"
+              memory: "80Mi"
+              cpu: "25m"
             limits:
-              memory: "512Mi"
-              cpu: "1000m"
+              memory: "200Mi"
+              cpu: "100m"
