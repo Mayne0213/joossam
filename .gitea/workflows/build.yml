@@ -1,0 +1,181 @@
+name: Build Docker Image
+
+on:
+  push:
+    branches: [main, develop]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  REGISTRY: gitea0213.kro.kr
+  IMAGE_NAME: ${{ gitea.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write
+      packages: write
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Gitea Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ gitea.actor }}
+          password: ${{ secrets.GITEA_TOKEN }}
+
+      - name: Lowercase repository name
+        id: lowercase
+        run: |
+          echo "repo=$(echo ${{ gitea.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.repo }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-sha-,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/fastapi
+          file: ./deploy/docker/Dockerfile.prod
+          push: true
+          platforms: linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract SHA tag
+        id: extract-tag
+        run: |
+          # Extract the SHA-based tag from the tags list
+          TAGS="${{ steps.meta.outputs.tags }}"
+          echo "All tags:"
+          echo "$TAGS"
+          echo "---"
+
+          # Get commit SHA (full 40 characters)
+          COMMIT_SHA="${{ gitea.sha }}"
+
+          # Get current branch name
+          BRANCH_NAME="${{ gitea.ref_name }}"
+          echo "Branch: $BRANCH_NAME"
+
+          # Method 1: Extract the full SHA tag from docker/metadata-action output
+          # docker/metadata-action creates: <branch>-sha-<full-40-char-sha>
+          SHA_TAG=$(echo "$TAGS" | grep -oE "${BRANCH_NAME}-sha-[a-f0-9]{40}" | head -n 1)
+
+          # Method 2: If not found, try to extract any branch-sha- tag (fallback)
+          if [ -z "$SHA_TAG" ]; then
+            SHA_TAG=$(echo "$TAGS" | grep -oE "${BRANCH_NAME}-sha-[a-f0-9]+" | head -n 1)
+            if [ -n "$SHA_TAG" ]; then
+              echo "⚠️  Found SHA tag (may not be full 40 chars): $SHA_TAG"
+            fi
+          fi
+
+          # Method 3: Fallback to commit SHA directly (construct the tag)
+          if [ -z "$SHA_TAG" ]; then
+            SHA_TAG="${BRANCH_NAME}-sha-$COMMIT_SHA"
+            echo "⚠️  Could not extract from tags, using commit SHA: $SHA_TAG"
+          fi
+
+          if [ -z "$SHA_TAG" ]; then
+            echo "❌ ERROR: Failed to extract SHA tag"
+            exit 1
+          fi
+
+          echo "sha-tag=$SHA_TAG" >> $GITHUB_OUTPUT
+          echo "✅ Extracted SHA tag: $SHA_TAG"
+
+      - name: Update kustomization with new image tag
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+        run: |
+          git config --global user.name "gitea-actions[bot]"
+          git config --global user.email "gitea-actions[bot]@users.noreply.gitea.com"
+
+          # Validate that SHA_TAG is not empty
+          SHA_TAG="${{ steps.extract-tag.outputs.sha-tag }}"
+          if [ -z "$SHA_TAG" ]; then
+            echo "❌ ERROR: SHA_TAG is empty, cannot update kustomization"
+            exit 1
+          fi
+
+          # Determine overlay based on branch
+          BRANCH_NAME="${{ gitea.ref_name }}"
+          if [ "$BRANCH_NAME" = "main" ]; then
+            OVERLAY="prod"
+          elif [ "$BRANCH_NAME" = "develop" ]; then
+            OVERLAY="dev"
+          else
+            echo "⚠️  Unknown branch: $BRANCH_NAME, skipping kustomization update"
+            exit 0
+          fi
+
+          KUSTOMIZATION_FILE="deploy/k8s/overlays/$OVERLAY/kustomization.yaml"
+
+          # Check if kustomization file has images section
+          if grep -q "images:" "$KUSTOMIZATION_FILE"; then
+            echo "📝 Updating $KUSTOMIZATION_FILE with tag: $SHA_TAG"
+
+            # Update kustomization.yaml with new image tag
+            # Handle both cases: newTag: (with value) and newTag: (empty)
+            sed -i.bak "s|newTag:.*|newTag: $SHA_TAG|" "$KUSTOMIZATION_FILE"
+
+            # Verify the update was successful
+            if grep -q "newTag: $SHA_TAG" "$KUSTOMIZATION_FILE"; then
+              echo "✅ Successfully updated kustomization.yaml"
+              rm -f "$KUSTOMIZATION_FILE.bak"
+            else
+              echo "❌ ERROR: Failed to update kustomization.yaml"
+              cat "$KUSTOMIZATION_FILE"
+              exit 1
+            fi
+
+            # Commit and push if there are changes
+            if git diff --quiet; then
+              echo "No changes to commit"
+            else
+              git add "$KUSTOMIZATION_FILE"
+              git commit -m "Update $OVERLAY image to $SHA_TAG"
+              git push
+              echo "✅ Kustomization updated with new image tag: $SHA_TAG"
+            fi
+          else
+            echo "ℹ️  $OVERLAY overlay uses base image (latest tag), skipping kustomization update"
+            echo "   Image built with tag: $SHA_TAG"
+          fi
+
+      - name: Display image information
+        run: |
+          echo "✅ Image built and pushed successfully!"
+          echo "📦 Image tags:"
+          echo "${{ steps.meta.outputs.tags }}"
+          echo "🔖 SHA tag: ${{ steps.extract-tag.outputs.sha-tag }}"
+          echo "🔖 Digest: ${{ steps.build.outputs.digest }}"
+          echo ""
+          echo "🚀 Kustomization updated with new image tag"
+          echo "   ArgoCD will automatically detect and deploy this new image"
+          echo "   Monitor deployment at your ArgoCD dashboard"
