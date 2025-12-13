@@ -13,7 +13,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/Mayne0213/joossam.git
+    repoURL: https://gitea0213.kro.kr/bluemayne/joossam.git
     targetRevision: main
     path: deploy/k8s/overlays/prod
 
