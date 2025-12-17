@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://gitea0213.kro.kr/bluemayne/joossam.git
     targetRevision: main
-    path: .
+    path: deploy/argocd
 
   destination:
     server: https://kubernetes.default.svc
