@@ -3,10 +3,6 @@ kind: Application
 metadata:
   name: joossam
   namespace: argocd
-  annotations:
-    argocd-image-updater.argoproj.io/image-list: joossam=ghcr.io/mayne0213/joossam
-    argocd-image-updater.argoproj.io/joossam.update-strategy: latest
-    argocd-image-updater.argoproj.io/write-back-method: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -15,22 +11,20 @@ spec:
   source:
     repoURL: https://gitea0213.kro.kr/bluemayne/joossam.git
     targetRevision: main
-    path: deploy/k8s/overlays/prod
+    path: .
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: joossam
+    namespace: argocd
 
   syncPolicy:
     automated:
-      prune: true      # 매니페스트에서 제거된 리소스 자동 삭제
-      selfHeal: true   # 클러스터에서 수동 변경 시 자동 복구
+      prune: true
+      selfHeal: true
       allowEmpty: false
 
     syncOptions:
-      - CreateNamespace=true  # namespace가 없으면 자동 생성
-      - PrunePropagationPolicy=foreground
-      - PruneLast=true
+      - CreateNamespace=true
 
     retry:
       limit: 5
