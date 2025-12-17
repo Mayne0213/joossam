@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # App of Apps Application
+  - application.yaml
+
+  # Application deployments
+  - application-dev.yaml
+  - deploy/argocd/application.yaml
