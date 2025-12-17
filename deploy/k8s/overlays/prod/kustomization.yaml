@@ -13,7 +13,7 @@ commonLabels:
 # 이미지 태그 설정
 images:
   - name: ghcr.io/mayne0213/joossam
-    newTag: main-sha-f4f28bd92b9a4b7408753982bad0c0ae7e5ab25c
+    newTag: main-sha-4ab6c51a27d80f1f8206facaa623538ed7261267
 
 patchesStrategicMerge:
   - deployment-patch.yaml
