@@ -121,7 +121,7 @@ jobs:
 
       - name: Update kustomization with new image tag
         env:
-          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+          GITEA_TOKEN: ${{ secrets.GITEAREGISTRYTOKEN }}
         run: |
           git config --global user.name "gitea-actions[bot]"
           git config --global user.email "gitea-actions[bot]@users.noreply.gitea.com"
