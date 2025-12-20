@@ -29,7 +29,7 @@ jobs:
 
       - name: Log in to Gitea Container Registry
         run: |
-          echo "${{ github.token }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+          echo "${{ secrets.GITEAREGISTRY }}" | docker login ${{ env.REGISTRY }} -u bluemayne --password-stdin
 
       - name: Lowercase repository name
         id: lowercase
