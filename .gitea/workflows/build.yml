@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ghcr.io
+  REGISTRY: gitea0213.kro.kr
   IMAGE_NAME: ${{ github.repository }}
   DOCKER_HOST: tcp://172.17.0.1:2375
 
@@ -27,14 +27,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to Gitea Container Registry
         run: |
-          echo "${{ secrets.githubregistry }}" | docker login ${{ env.REGISTRY }} -u Mayne0213 --password-stdin
+          echo "${{ github.token }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
       - name: Lowercase repository name
         id: lowercase
         run: |
-          echo "repo=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]' | sed 's/bluemayne/mayne0213/')" >> $GITHUB_OUTPUT
+          echo "repo=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Extract metadata (tags, labels)
         id: meta
@@ -121,7 +121,7 @@ jobs:
 
       - name: Update kustomization with new image tag
         env:
-          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+          GITEA_TOKEN: ${{ secrets.GITEAREGISTRYTOKEN }}
         run: |
           git config --global user.name "gitea-actions[bot]"
           git config --global user.email "gitea-actions[bot]@users.noreply.gitea.com"
