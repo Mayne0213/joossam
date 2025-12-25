@@ -6,6 +6,7 @@ namespace: joossam
 resources:
   - ../../base
   - resourcequota.yaml
+  - ingress.yaml
 
 commonLabels:
   environment: production
@@ -13,7 +14,7 @@ commonLabels:
 # 이미지 태그 설정
 images:
   - name: ghcr.io/mayne0213/joossam
-    newTag: main-sha-2443ddec1e4afb39f9769b5843e9c7a630e22bf8
+    newTag: main-sha-206989c78299bf8983b327da5ee8eefb06ec9429
 
 patchesStrategicMerge:
   - deployment-patch.yaml
