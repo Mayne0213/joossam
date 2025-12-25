@@ -6,6 +6,7 @@ namespace: joossam
 resources:
   - ../../base
   - resourcequota.yaml
+  - ingress.yaml
 
 commonLabels:
   environment: production

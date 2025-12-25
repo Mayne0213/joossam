@@ -7,6 +7,7 @@ resources:
   - ../../base
   - resourcequota.yaml
   - namespace.yaml
+  - ingress.yaml
 
 commonLabels:
   environment: development
@@ -14,7 +15,7 @@ commonLabels:
 # 이미지 태그 설정
 images:
   - name: gitea0213.kro.kr/bluemayne/joossam
-    newTag: develop-sha-b7825fd5fd672a5ab29535083e597318ba7895d0
+    newTag: develop-sha-e03cde560b87b092399956c4671dbae0a56058a5
 
 patchesStrategicMerge:
   - deployment-patch.yaml
