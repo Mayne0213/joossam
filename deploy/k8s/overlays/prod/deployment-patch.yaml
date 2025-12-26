@@ -13,4 +13,4 @@ spec:
           resources:
             requests:
               memory: "50Mi"
-              cpu: "15m"
+              cpu: "5m"  # Reduced from 15m based on actual usage (2m)
