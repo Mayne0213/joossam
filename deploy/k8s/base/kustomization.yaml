@@ -10,5 +10,5 @@ commonLabels:
   app.kubernetes.io/component: api
 
 images:
-  - name: gitea0213.kro.kr/bluemayne/joossam
+  - name: github.com/Mayne0213/joossam
     newTag: latest
