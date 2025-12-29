@@ -9,7 +9,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://gitea0213.kro.kr/bluemayne/joossam.git
+    repoURL: https://github.com/Mayne0213/joossam.git
     targetRevision: main
     path: deploy/argocd
 
