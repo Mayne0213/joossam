@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: joossam-app
-          image: gitea0213.kro.kr/bluemayne/joossam:latest
+          image: ghcr.io/mayne0213/joossam:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
