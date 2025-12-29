@@ -15,7 +15,7 @@ commonLabels:
 # 이미지 태그 설정
 images:
   - name: gitea0213.kro.kr/bluemayne/joossam
-    newTag: develop-sha-e8a13edcf2841c42e295ff72c9d52b88712376af
+    newTag: develop-sha-02c45c58af78b5d063b72312dcc553f67850c593
 
 patchesStrategicMerge:
   - deployment-patch.yaml
