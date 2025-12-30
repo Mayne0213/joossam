@@ -3,16 +3,7 @@ kind: Ingress
 metadata:
   name: joossam-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    # HTTP를 HTTPS로 자동 리다이렉트
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    # cert-manager가 인증서를 자동으로 발급하도록 설정
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    # CORS 설정 (Vercel 프론트엔드 허용)
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://joossameng.com,https://*.com"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
-    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
 spec:
   ingressClassName: traefik
   # TLS 설정
