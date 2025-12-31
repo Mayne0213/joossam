@@ -5,7 +5,7 @@ metadata:
   namespace: joossam
 spec:
   hard:
-    requests.memory: "400Mi"
-    requests.cpu: "150m"
-    # limits.memory removed to prevent quota enforcement (optional for flexibility)
+    requests.memory: "1Gi"
+    requests.cpu: "300m"
+    limits.memory: "2Gi"
     pods: "9"
