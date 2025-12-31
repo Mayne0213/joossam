@@ -15,7 +15,7 @@ commonLabels:
 # 이미지 태그 설정
 images:
   - name: github.com/Mayne0213/joossam
-    newTag: develop-sha-b7825fd5fd672a5ab29535083e597318ba7895d0
+    newTag: develop-sha-3867ab70aaad59bfae294fa125c247e6b5c3f34e
 
 patchesStrategicMerge:
   - deployment-patch.yaml
