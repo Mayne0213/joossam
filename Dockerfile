@@ -1,13 +1,13 @@
-# Development Dockerfile for Joossam FastAPI OMR Grading Service
-FROM python:3.11-slim
+# Production Dockerfile for Joossam FastAPI OMR Grading Service
+FROM python:3.11-slim AS base
 
 # 시스템 의존성 설치 (OpenCV용)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
+    libxrender1 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -17,18 +17,23 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 개발용 의존성 추가
-RUN pip install --no-cache-dir watchfiles
-
 # 애플리케이션 코드 복사
 COPY . .
 
+# 비루트 사용자 생성 및 전환
+RUN addgroup --system --gid 1001 appgroup && \
+    adduser --system --uid 1001 --gid 1001 appuser && \
+    chown -R appuser:appgroup /app
+USER appuser
+
 EXPOSE 8000
+
+ENV HOST=0.0.0.0
+ENV PORT=8000
 
 # 헬스체크
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# 개발 서버 실행 (hot-reload 활성화)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
